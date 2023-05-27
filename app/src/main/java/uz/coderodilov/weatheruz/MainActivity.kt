@@ -1,12 +1,16 @@
 package uz.coderodilov.weatheruz
 
-
 import android.annotation.SuppressLint
+import android.content.IntentFilter
+import android.content.SharedPreferences
+import android.content.SharedPreferences.Editor
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.WindowManager
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
@@ -19,38 +23,54 @@ import uz.coderodilov.weatheruz.adapter.RvHourlyWeatherAdapter
 import uz.coderodilov.weatheruz.data.Lists
 import uz.coderodilov.weatheruz.databinding.ActivityMainBinding
 import uz.coderodilov.weatheruz.databinding.CitiyBottomSheetDialogBinding
+import uz.coderodilov.weatheruz.helper.ConnectivityReceiver
 import uz.coderodilov.weatheruz.model.HourlyWeather
-
 import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Date
 import kotlin.math.roundToInt
 
+class MainActivity : AppCompatActivity(),SwipeRefreshLayout.OnRefreshListener,
+    ConnectivityReceiver.ConnectivityReceiverListener {
 
-class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private val api_key = "e0203aac4b814861a7e8f2a2fc1f204f"
+    private val apikey = "e0203aac4b814861a7e8f2a2fc1f204f"
 
     private lateinit var cityAdapter: RvCityAdapter
     private lateinit var hourlyWeatherAdapter:RvHourlyWeatherAdapter
 
-    private var cityName = "Andijan"
+    private lateinit var sharedPreferences:SharedPreferences
+    private lateinit var editor: Editor
+
+    private lateinit var cityName:String
+    private var isNetworkConnected = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        sharedPreferences = getSharedPreferences("appConfig", MODE_PRIVATE)
+        binding.swipeRefreshLayout.setOnRefreshListener(this)
+        cityName = getFromShared()
+
         getWeather(cityName)
 
         binding.btnChangeLocation.setOnClickListener{
             showMapBottomSheet()
         }
+
+        registerReceiver(
+            ConnectivityReceiver(),
+            IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        )
+
     }
 
 
+    @SuppressLint("SetTextI18n")
     private fun getWeather(city: String) {
         getHourlyWeather(cityName)
-        val url = "https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=$api_key"
+        val url = "https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=$apikey"
         val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, url, null,
             { response ->
               try {
@@ -76,15 +96,18 @@ class MainActivity : AppCompatActivity() {
         queue.add(jsonObjectRequest)
     }
 
-
     private fun getHourlyWeather(city:String){
-        val url = "https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=$api_key"
+        binding.shimmerContainer.startShimmerAnimation()
+        binding.shimmerContainer.visibility = View.VISIBLE
+        binding.rvHourly.visibility = View.GONE
+
+        val url = "https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=$apikey"
         val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, url, null,
             {  response ->
                 try {
                     val listOfHours = ArrayList<HourlyWeather>()
-
                     val list = response.getJSONArray("list")
+
                     for (i in 0 until list.length()){
                         if (list.getJSONObject(i).getString("dt_txt").split(" ")[0] == getCurrentDate()){
                             val hour = list.getJSONObject(i).getString("dt_txt").split(" ")[1].substring(0,5)
@@ -102,6 +125,11 @@ class MainActivity : AppCompatActivity() {
                     hourlyWeatherAdapter = RvHourlyWeatherAdapter(listOfHours)
                     binding.rvHourly.adapter = hourlyWeatherAdapter
 
+                    binding.swipeRefreshLayout.isRefreshing = false
+                    binding.shimmerContainer.stopShimmerAnimation()
+                    binding.shimmerContainer.visibility = View.GONE
+                    binding.rvHourly.visibility = View.VISIBLE
+
 
                 } catch (e:JSONException){
                     e.printStackTrace()
@@ -114,7 +142,6 @@ class MainActivity : AppCompatActivity() {
         val queue:RequestQueue = Volley.newRequestQueue(this)
         queue.add(jsonObjectRequest)
     }
-
 
     @SuppressLint("SimpleDateFormat")
     private  fun getCurrentDate():String{
@@ -136,6 +163,7 @@ class MainActivity : AppCompatActivity() {
         cityAdapter.onCityClickListener{
             cityName = Lists.list[it]
             getWeather(cityName)
+            saveToShared(cityName)
             dialog.dismiss()
         }
 
@@ -143,9 +171,37 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private fun saveToShared(city: String){
+        editor = sharedPreferences.edit()
+        editor.putString("cityName", city).apply()
+    }
+
+    private fun getFromShared():String{
+        return  sharedPreferences.getString("cityName", "Andijan")!!
+    }
+
+
     private fun convertTempFromFtoC(fahrenheit:Double):Int{
         val result = fahrenheit - 273.15
         return result.roundToInt()
     }
+
+
+    override fun onRefresh() {
+        getWeather(cityName)
+        binding.swipeRefreshLayout.isRefreshing = false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        getWeather(cityName)
+        ConnectivityReceiver.connectivityReceiverListener = this
+    }
+
+    override fun onNetworkConnectionChanged(isConnected: Boolean) {
+        getWeather(cityName)
+        isNetworkConnected = isConnected
+    }
+
 
 }

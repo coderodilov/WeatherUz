@@ -3,5 +3,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="my_light_primary">#352868</color>
+    <color name="background">#dddddd</color>
 
 </resources>

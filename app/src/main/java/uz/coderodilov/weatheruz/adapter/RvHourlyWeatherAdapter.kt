@@ -8,7 +8,7 @@ import uz.coderodilov.weatheruz.databinding.WeatherItemHourlyBinding
 import uz.coderodilov.weatheruz.model.HourlyWeather
 
 /* 
-* Created by Coder Odilov on {27/05/2023}
+* Created by Coder Odilov on 27/05/2023
 */
 
 class RvHourlyWeatherAdapter(private val list:ArrayList<HourlyWeather>):RecyclerView.Adapter<RvHourlyWeatherAdapter.ViewHolder>(){

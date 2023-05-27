@@ -6,7 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import uz.coderodilov.weatheruz.databinding.CityItemBinding
 
 /* 
-* Created by Coder Odilov on {26/05/2023}
+* Created by Coder Odilov on 26/05/2023
 */
 
 class RvCityAdapter(private val list: List<String>):RecyclerView.Adapter<RvCityAdapter.ViewHolder>(){
