@@ -7,18 +7,17 @@ package uz.coderodilov.weatheruz.data
 object Lists {
     val list = listOf(
         "Andijan",
-        "Bukhara",
+        "Bukhoro",
         "Fergana",
         "Jizzakh",
-        "Urgench",
+        "Khorazm",
         "Namangan",
         "Navoiy",
         "Qarshi",
         "Samarkand",
-        "Guliston",
         "Toshkent",
         "Termez",
-        "Nurafshon",
+        "Denov",
         "Nukus",
     )
 }
