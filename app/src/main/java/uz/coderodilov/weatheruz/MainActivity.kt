@@ -44,7 +44,9 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
     private lateinit var hourlyWeatherAdapter: RvHourlyWeatherAdapter
 
     private lateinit var rvDailyWeatherAdapter: RvDailyWeatherAdapter
-    private lateinit var listDailyWeather: ArrayList<Day>
+    private val listDailyWeather = ArrayList<Day>()
+    private val listHourly = ArrayList<HourlyWeather>()
+    private val listOfTime = ArrayList<String>()
 
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var editor: Editor
@@ -91,7 +93,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, url, null,
             { response ->
                 try {
-
+                    listHourly.clear()
                     val current = response.getJSONObject("current")
                     val currentTemp = current.getString("temp_c").split(".")[0] + "°"
                     val currentDesc = current.getJSONObject("condition").getString("text")
@@ -100,11 +102,17 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
                     binding.tvCity.text = cityName
                     binding.tvDesc.text = currentDesc
 
-                    val listHourly = ArrayList<HourlyWeather>()
                     val forecast = response.getJSONObject("forecast")
                     val day = forecast.getJSONArray("forecastday")
                     val objectOfDay = day.getJSONObject(0)
                     val listHoursOfDay = objectOfDay.getJSONArray("hour")
+
+                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("sunrise"))
+                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("sunset"))
+                    listOfTime.add(
+                        day.getJSONObject(0).getJSONObject("astro").getString("moonrise")
+                    )
+                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("moonset"))
 
                     for (i in 0 until listHoursOfDay.length()) {
                         if (listHoursOfDay.getJSONObject(i).getString("time")
@@ -147,8 +155,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, url, null,
             { response ->
                 try {
-                    listDailyWeather = ArrayList()
-
+                    listDailyWeather.clear()
                     val forecast = response.getJSONObject("forecast")
                     val location = response.getJSONObject("location")
                     var region = location.getString("region")
@@ -157,7 +164,6 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
                     val forecastday = forecast.getJSONArray("forecastday")
 
                     for (i in 0 until forecastday.length()) {
-
                         val day = forecastday.getJSONObject(i).getJSONObject("day")
                         val temp = day.getString("maxtemp_c").split(".")[0] + "°"
                         val desc = day.getJSONObject("condition").getString("text")
@@ -182,7 +188,6 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         queue.add(jsonObjectRequest)
 
     }
-
 
     private fun setupRvWeather(list: ArrayList<HourlyWeather>) {
         binding.shimmerContainer.startShimmerAnimation()
@@ -267,12 +272,21 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         dialog.show()
     }
 
-
     private fun showInfoBottomSheet() {
         val dialogBinding = InfoBottomSheetDialogBinding.inflate(LayoutInflater.from(this))
         val dialog = BottomSheetDialog(this, R.style.BottomSheetDialogStyle)
         dialog.setContentView(dialogBinding.root)
         dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+
+        dialogBinding.apply {
+            if (listOfTime.isNotEmpty()) {
+                tvSunRiseTime.text = listOfTime[0]
+                tvSunSetTime.text = listOfTime[1]
+
+                tvMoonriseTime.text = listOfTime[2]
+                tvMoonsetTime.text = listOfTime[3]
+            }
+        }
 
         dialog.show()
     }
@@ -287,13 +301,15 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
     }
 
     override fun onRefresh() {
-        getCurrentWeather(cityName)
-        binding.swipeRefreshLayout.isRefreshing = false
+        if (isNetworkConnected){
+            getCurrentWeather(cityName)
+            binding.swipeRefreshLayout.isRefreshing = false
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        getCurrentWeather(cityName)
+        binding.swipeRefreshLayout.isRefreshing = true
         ConnectivityReceiver.connectivityReceiverListener = this
     }
 
@@ -301,6 +317,13 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         if (isConnected) {
             getCurrentWeather(cityName)
         } else {
+            listDailyWeather.clear()
+            listHourly.clear()
+
+            binding.tvCity.text = "offline"
+            binding.tvTemp.text = ""
+            binding.tvDesc.text = ""
+
             binding.shimmerContainer.visibility = View.VISIBLE
             binding.shimmerContainer.startShimmerAnimation()
             binding.rvHourly.visibility = View.GONE
