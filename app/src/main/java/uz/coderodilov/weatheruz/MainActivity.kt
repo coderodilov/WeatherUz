@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
     private val listDailyWeather = ArrayList<Day>()
     private val listHourly = ArrayList<HourlyWeather>()
-    private val listOfTime = ArrayList<String>()
+    private val listTimeForInfoDialog = ArrayList<String>()
 
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var editor: Editor
@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
             { response ->
                 try {
                     listHourly.clear()
-                    listOfTime.clear()
+                    listTimeForInfoDialog.clear()
 
                     val current = response.getJSONObject("current")
                     val currentTemp = current.getDouble("temp_c").roundToInt().toString().plus("°")
@@ -119,10 +119,10 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
                     val objectOfDay = day.getJSONObject(0)
                     val listHoursOfDay = objectOfDay.getJSONArray("hour")
 
-                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("sunrise"))
-                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("sunset"))
-                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("moonrise"))
-                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("moonset"))
+                    listTimeForInfoDialog.add(day.getJSONObject(0).getJSONObject("astro").getString("sunrise"))
+                    listTimeForInfoDialog.add(day.getJSONObject(0).getJSONObject("astro").getString("sunset"))
+                    listTimeForInfoDialog.add(day.getJSONObject(0).getJSONObject("astro").getString("moonrise"))
+                    listTimeForInfoDialog.add(day.getJSONObject(0).getJSONObject("astro").getString("moonset"))
 
                     for (i in 0 until listHoursOfDay.length()) {
                         if (listHoursOfDay.getJSONObject(i).getString("time")
@@ -302,12 +302,12 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
 
         dialogBinding.apply {
-            if (listOfTime.isNotEmpty()) {
-                tvSunRiseTime.text = listOfTime[0]
-                tvSunSetTime.text = listOfTime[1]
+            if (listTimeForInfoDialog.isNotEmpty()) {
+                tvSunRiseTime.text = listTimeForInfoDialog[0]
+                tvSunSetTime.text = listTimeForInfoDialog[1]
 
-                tvMoonriseTime.text = listOfTime[2]
-                tvMoonsetTime.text = listOfTime[3]
+                tvMoonriseTime.text = listTimeForInfoDialog[2]
+                tvMoonsetTime.text = listTimeForInfoDialog[3]
             }
         }
 
