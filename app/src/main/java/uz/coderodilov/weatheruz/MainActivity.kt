@@ -33,6 +33,7 @@ import uz.coderodilov.weatheruz.model.Day
 import uz.coderodilov.weatheruz.model.HourlyWeather
 import java.text.SimpleDateFormat
 import java.util.Date
+import kotlin.math.roundToInt
 
 @SuppressLint("SimpleDateFormat")
 class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
@@ -42,8 +43,8 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
     private lateinit var cityAdapter: RvCityAdapter
     private lateinit var hourlyWeatherAdapter: RvHourlyWeatherAdapter
-
     private lateinit var rvDailyWeatherAdapter: RvDailyWeatherAdapter
+
     private val listDailyWeather = ArrayList<Day>()
     private val listHourly = ArrayList<HourlyWeather>()
     private val listOfTime = ArrayList<String>()
@@ -84,7 +85,16 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
     }
 
+    //region API Volley
     private fun getCurrentWeather(city: String) {
+        binding.shimmerContainer.visibility = View.VISIBLE
+        binding.shimmerContainer.startShimmerAnimation()
+        binding.rvHourly.visibility = View.GONE
+
+        binding.tvCity.text = ""
+        binding.tvTemp.text = ""
+        binding.tvDesc.text = ""
+
         getWeeklyWeather(city)
         val key = "fbd46ace8692435995f111103232705"
         val url =
@@ -94,8 +104,10 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
             { response ->
                 try {
                     listHourly.clear()
+                    listOfTime.clear()
+
                     val current = response.getJSONObject("current")
-                    val currentTemp = current.getString("temp_c").split(".")[0] + "°"
+                    val currentTemp = current.getDouble("temp_c").roundToInt().toString().plus("°")
                     val currentDesc = current.getJSONObject("condition").getString("text")
 
                     binding.tvTemp.text = currentTemp
@@ -109,9 +121,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
                     listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("sunrise"))
                     listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("sunset"))
-                    listOfTime.add(
-                        day.getJSONObject(0).getJSONObject("astro").getString("moonrise")
-                    )
+                    listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("moonrise"))
                     listOfTime.add(day.getJSONObject(0).getJSONObject("astro").getString("moonset"))
 
                     for (i in 0 until listHoursOfDay.length()) {
@@ -120,14 +130,18 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
                         ) {
                             val hour = listHoursOfDay.getJSONObject(i).getString("time")
                                 .split(" ")[1].substring(0, 5)
-                            val temp = listHoursOfDay.getJSONObject(i).getString("temp_c")
-                                .split(".")[0] + "°"
+                            val temp = listHoursOfDay.getJSONObject(i).getDouble("temp_c").roundToInt().toString().plus("°")
+
                             val icon = listHoursOfDay.getJSONObject(i).getJSONObject("condition")
                                 .getString("icon")
                             val hourlyWeather = HourlyWeather(hour, temp, icon)
                             listHourly.add(hourlyWeather)
                         }
                     }
+
+                    binding.shimmerContainer.stopShimmerAnimation()
+                    binding.rvHourly.visibility = View.VISIBLE
+                    binding.shimmerContainer.visibility = View.GONE
 
                     setupRvWeather(listHourly)
                     binding.swipeRefreshLayout.isRefreshing = false
@@ -165,7 +179,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
                     for (i in 0 until forecastday.length()) {
                         val day = forecastday.getJSONObject(i).getJSONObject("day")
-                        val temp = day.getString("maxtemp_c").split(".")[0] + "°"
+                        val temp = day.getDouble("maxtemp_c").roundToInt().toString()
                         val desc = day.getJSONObject("condition").getString("text")
                         val icon = day.getJSONObject("condition").getString("icon")
                         val date = forecastday.getJSONObject(i).getString("date")
@@ -189,10 +203,14 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
     }
 
+    //endregion
+
+    //region Utils
     private fun setupRvWeather(list: ArrayList<HourlyWeather>) {
         binding.shimmerContainer.startShimmerAnimation()
         binding.shimmerContainer.visibility = View.GONE
         binding.rvHourly.visibility = View.VISIBLE
+
 
         val layoutManager = LinearLayoutManager(
             this,
@@ -223,6 +241,9 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         return counter
     }
 
+    //endregion
+
+    //region DateAndTime
     private fun getCurrentDate(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd")
         return sdf.format(Date())
@@ -238,7 +259,9 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         }
         return currentHour.toString().substring(0, 2)
     }
+    //endregion
 
+    //region Bottomsheet
     private fun showRegionBottomSheet() {
         val dialogBinding = CitiyBottomSheetDialogBinding.inflate(LayoutInflater.from(this))
         val dialog = BottomSheetDialog(this, R.style.BottomSheetDialogStyle)
@@ -291,6 +314,9 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         dialog.show()
     }
 
+    //endregion
+
+    //region SharedPref
     private fun saveToShared(city: String) {
         editor = sharedPreferences.edit()
         editor.putString("cityName", city).apply()
@@ -299,6 +325,10 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
     private fun getFromShared(): String {
         return sharedPreferences.getString("cityName", "Andijan")!!
     }
+
+    //endregion
+
+    //region Override
 
     override fun onRefresh() {
         if (isNetworkConnected){
@@ -309,10 +339,10 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
     override fun onResume() {
         super.onResume()
-        binding.swipeRefreshLayout.isRefreshing = true
         ConnectivityReceiver.connectivityReceiverListener = this
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onNetworkConnectionChanged(isConnected: Boolean) {
         if (isConnected) {
             getCurrentWeather(cityName)
@@ -331,5 +361,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
         isNetworkConnected = isConnected
     }
+
+    //endregion
 
 }

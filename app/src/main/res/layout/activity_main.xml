@@ -45,7 +45,7 @@
             android:layout_centerHorizontal="true"
             android:fontFamily="@font/sf_pro_display_semibold"
             android:text=""
-            android:textColor="#A4A4A8"
+            android:textColor="#E5C9E4"
             android:textSize="20dp" />
 
         <ImageView

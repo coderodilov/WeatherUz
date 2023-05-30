@@ -15,9 +15,8 @@ object Lists {
         "Navoiy",
         "Qarshi",
         "Samarkand",
+        "Surkhondaryo",
         "Toshkent",
-        "Termez",
-        "Denov",
         "Nukus",
     )
 }
