@@ -1,9 +1,12 @@
 package uz.coderodilov.weatheruz
 
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.SharedPreferences.Editor
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.icu.util.Calendar
 import android.net.ConnectivityManager
 import android.os.Bundle
@@ -28,6 +31,7 @@ import uz.coderodilov.weatheruz.databinding.ActivityMainBinding
 import uz.coderodilov.weatheruz.databinding.CitiyBottomSheetDialogBinding
 import uz.coderodilov.weatheruz.databinding.DailyBottomSheetDialogBinding
 import uz.coderodilov.weatheruz.databinding.InfoBottomSheetDialogBinding
+import uz.coderodilov.weatheruz.databinding.NoInternetDialogBinding
 import uz.coderodilov.weatheruz.helper.ConnectivityReceiver
 import uz.coderodilov.weatheruz.model.Day
 import uz.coderodilov.weatheruz.model.HourlyWeather
@@ -87,6 +91,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
     //region API Volley
     private fun getCurrentWeather(city: String) {
+
         binding.shimmerContainer.visibility = View.VISIBLE
         binding.shimmerContainer.startShimmerAnimation()
         binding.rvHourly.visibility = View.GONE
@@ -330,6 +335,29 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
 
     //region Override
 
+    private fun showNetworkStateDialog() {
+        val dialog = Dialog(this)
+        val dialogBinding =
+            NoInternetDialogBinding.inflate(LayoutInflater.from(this))
+        dialog.setCancelable(false)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.setContentView(dialogBinding.root)
+
+        dialogBinding.btnReload.setOnClickListener {
+            if (isNetworkConnected) {
+                getCurrentWeather(cityName)
+                dialog.dismiss()
+            }
+        }
+
+        dialogBinding.tvExit.setOnClickListener {
+            dialog.dismiss()
+            finish()
+        }
+
+        dialog.show()
+    }
+
     override fun onRefresh() {
         if (isNetworkConnected){
             getCurrentWeather(cityName)
@@ -347,16 +375,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
         if (isConnected) {
             getCurrentWeather(cityName)
         } else {
-            listDailyWeather.clear()
-            listHourly.clear()
-
-            binding.tvCity.text = "offline"
-            binding.tvTemp.text = ""
-            binding.tvDesc.text = ""
-
-            binding.shimmerContainer.visibility = View.VISIBLE
-            binding.shimmerContainer.startShimmerAnimation()
-            binding.rvHourly.visibility = View.GONE
+            showNetworkStateDialog()
         }
 
         isNetworkConnected = isConnected
